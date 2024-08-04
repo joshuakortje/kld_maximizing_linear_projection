@@ -59,7 +59,9 @@ gradient_ascent_pipe = Pipeline([(stage, GradientAscent(r=r, num_steps=num_steps
 gradient_ascent_pipe[stage].name = 'Gradient Ascent (Algorithm 1)'
 gradient_ascent_pipe2 = Pipeline([(stage, GradientAscent(r=r, num_steps=num_steps, attempts=attempts, init_val=np.eye(r, n), verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
 gradient_ascent_pipe2[stage].name = 'Gradient Ascent (Algorithm 2)'
-pipes = [algorithm1_pipe, gradient_ascent_pipe, algorithm2_pipe, gradient_ascent_pipe2, lol_pipe]
+gradient_ascent_lol = Pipeline([(stage, GradientAscent(r=r, num_steps=num_steps, attempts=attempts, init_val=np.eye(r, n), verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+gradient_ascent_lol[stage].name = 'Gradient Ascent (LoL)'
+pipes = [algorithm1_pipe, gradient_ascent_pipe, algorithm2_pipe, gradient_ascent_pipe2, lol_pipe, gradient_ascent_lol]
 last_xform = None
 
 for pipe in pipes:
