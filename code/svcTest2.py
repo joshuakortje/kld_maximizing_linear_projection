@@ -1,5 +1,11 @@
-from gaussianprojection import *
+from gaussianprojection.utils import *
+import gaussianprojection.algorithm1 as algo1
+import gaussianprojection.algorithm2 as algo2
+import gaussianprojection.lol as lol
+import gaussianprojection.gradientdescent as gdesc
 from sklearn.model_selection import cross_val_score
+import matplotlib.pyplot as plt
+import pickle
 
 #@title Testing the SVC with a set of synthetically generated data.
 # Parameters
@@ -52,14 +58,14 @@ class_2_data = np.random.multivariate_normal(mu[1].flatten(), sigma[1], test_p)
 
 # Define our pipelines
 stage = 'dimensionReduction'
-algorithm1_pipe = Pipeline([(stage, Algorithm1(r=r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
-algorithm2_pipe = Pipeline([(stage, Algorithm2(r=r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
-lol_pipe = Pipeline([(stage, Lol(r=r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
-gradient_ascent_pipe = Pipeline([(stage, GradientAscent(r=r, num_steps=num_steps, attempts=attempts, init_val=np.eye(r, n), verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+algorithm1_pipe = Pipeline([(stage, algo1.Algorithm1(r=r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+algorithm2_pipe = Pipeline([(stage, algo2.Algorithm2(r=r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+lol_pipe = Pipeline([(stage, lol.Lol(r=r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+gradient_ascent_pipe = Pipeline([(stage, gdesc.GradientAscent(r=r, num_steps=num_steps, attempts=attempts, init_val=np.eye(r, n), verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
 gradient_ascent_pipe[stage].name = 'Gradient Ascent (Algorithm 1)'
-gradient_ascent_pipe2 = Pipeline([(stage, GradientAscent(r=r, num_steps=num_steps, attempts=attempts, init_val=np.eye(r, n), verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+gradient_ascent_pipe2 = Pipeline([(stage, gdesc.GradientAscent(r=r, num_steps=num_steps, attempts=attempts, init_val=np.eye(r, n), verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
 gradient_ascent_pipe2[stage].name = 'Gradient Ascent (Algorithm 2)'
-gradient_ascent_lol = Pipeline([(stage, GradientAscent(r=r, num_steps=num_steps, attempts=attempts, init_val=np.eye(r, n), verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+gradient_ascent_lol = Pipeline([(stage, gdesc.GradientAscent(r=r, num_steps=num_steps, attempts=attempts, init_val=np.eye(r, n), verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
 gradient_ascent_lol[stage].name = 'Gradient Ascent (LoL)'
 pipes = [algorithm1_pipe, gradient_ascent_pipe, algorithm2_pipe, gradient_ascent_pipe2, lol_pipe, gradient_ascent_lol]
 last_xform = None

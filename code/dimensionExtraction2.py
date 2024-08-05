@@ -1,4 +1,12 @@
-from gaussianprojection import *
+from gaussianprojection.utils import *
+import gaussianprojection.algorithm1 as algo1
+import gaussianprojection.algorithm2 as algo2
+import gaussianprojection.gradientdescent as gdesc
+import numpy as np
+import scipy
+import math
+import matplotlib.pyplot as plt
+import pickle
 
 # Function to plot contours of the Gaussian distributions
 # mu - list of means
@@ -123,11 +131,11 @@ else:
 
 # Define our pipelines
 stage = 'dimensionReduction'
-algorithm1_pipe = Pipeline([(stage, Algorithm1(r=reduce_r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
-algorithm2_pipe = Pipeline([(stage, Algorithm2(r=reduce_r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
-gradient_ascent_pipe = Pipeline([(stage, GradientAscent(r=reduce_r, num_steps=num_steps, attempts=num_attempts, init_val=algorithm1_pipe[stage].full_xform, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+algorithm1_pipe = Pipeline([(stage, algo1.Algorithm1(r=reduce_r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+algorithm2_pipe = Pipeline([(stage, algo2.Algorithm2(r=reduce_r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+gradient_ascent_pipe = Pipeline([(stage, gdesc.GradientAscent(r=reduce_r, num_steps=num_steps, attempts=num_attempts, init_val=algorithm1_pipe[stage].full_xform, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
 gradient_ascent_pipe[stage].name = 'Gradient Descent (Algorithm 1)'
-gradient_ascent_pipe2 = Pipeline([(stage, GradientAscent(r=reduce_r, num_steps=num_steps, attempts=num_attempts, init_val=algorithm2_pipe[stage].full_xform, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+gradient_ascent_pipe2 = Pipeline([(stage, gdesc.GradientAscent(r=reduce_r, num_steps=num_steps, attempts=num_attempts, init_val=algorithm2_pipe[stage].full_xform, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
 gradient_ascent_pipe2[stage].name = 'Gradient Descent (Algorithm 2)'
 pipes = [algorithm1_pipe, gradient_ascent_pipe, algorithm2_pipe, gradient_ascent_pipe2]
 #pipes = [gradient_ascent_pipe]
