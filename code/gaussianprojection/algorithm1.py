@@ -10,6 +10,7 @@ def algorithm1(mu, sigma, r):
   mu_diff = np.subtract(mu[1], mu[0])
   mu_diff_normalized = mu_diff/np.linalg.norm(mu_diff)  # normalize since all the other vectors will be normalized
   sub_1_eig_vect = np.transpose(scipy.linalg.solve(sigma[1], mu_diff_normalized, assume_a='pos', check_finite=False))
+  sub_1_eig_vect = sub_1_eig_vect / np.linalg.norm(sub_1_eig_vect)
 
   # Now solve for the remaining r-1 subspaces assuming the zero mean case
   eigenvalues, eigenvectors = scipy.linalg.eig(sigma[0], b=sigma[1])

@@ -7,6 +7,7 @@ import math
 import operator
 import statistics
 import copy
+from keras.datasets import cifar10
 import scipy.io as sio
 from IPython.core.debugger import Pdb
 from collections import defaultdict
@@ -247,3 +248,44 @@ def gen_gaussians_n_dim_samples(n, p, a, b):
   data = gen_gaussian_samples(mu, sigma, p)
 
   return mu, sigma, data
+
+
+def remove_edges(data, dim1, dim2):
+  print()
+
+#@title Read in the CIFAR-10 dataset
+
+def get_cifar10_2_class(trim, train_size):
+  training_data_size = train_size*10
+  total_data_size = 5000*10
+  test_data_size = 10000
+  width = 32
+  new_width = width - trim*2
+  dim_size = new_width*new_width*3
+  (train_x, train_y), (test_x, test_y) = cifar10.load_data()
+  #train_x = np.tan(train_x)
+  #test_x = np.tan(test_x)
+  # Option to get rid of the edges of each picture
+  if trim > 0:
+    train_x = np.delete(train_x, np.add(np.arange(trim), width - trim).tolist(), 1)
+    train_x = np.delete(train_x, np.add(np.arange(trim), width - trim).tolist(), 2)
+    train_x = np.delete(train_x, np.arange(trim).tolist(), 1)
+    train_x = np.delete(train_x, np.arange(trim).tolist(), 2)
+    test_x = np.delete(test_x, np.add(np.arange(trim), width - trim).tolist(), 1)
+    test_x = np.delete(test_x, np.add(np.arange(trim), width - trim).tolist(), 2)
+    test_x = np.delete(test_x, np.arange(trim).tolist(), 1)
+    test_x = np.delete(test_x, np.arange(trim).tolist(), 2)
+  train_x = train_x.reshape(total_data_size, dim_size)
+  test_x = test_x.reshape(test_data_size, dim_size)
+
+  train_data, train_labels = split_classes(train_x, train_y.flatten().tolist())
+  test_data, test_classes = split_classes(test_x, test_y.flatten().tolist())
+
+  train_data_trunc = train_data[:, :train_size, :]
+  test_data_trunc = test_data[:, :train_size, :]
+
+  # Get cat and dog classes
+  cifar10_cat_dog_training_data = [train_data_trunc[1], train_data_trunc[9]]
+  cifar10_cat_dog_test_data = [test_data_trunc[1], test_data_trunc[9]]
+  return cifar10_cat_dog_training_data, cifar10_cat_dog_test_data
+
