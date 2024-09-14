@@ -259,6 +259,7 @@ def get_cifar10_2_class(trim, train_size):
   training_data_size = train_size*10
   total_data_size = 5000*10
   test_data_size = 10000
+  test_size = 1000
   width = 32
   new_width = width - trim*2
   dim_size = new_width*new_width*3
@@ -282,10 +283,16 @@ def get_cifar10_2_class(trim, train_size):
   test_data, test_classes = split_classes(test_x, test_y.flatten().tolist())
 
   train_data_trunc = train_data[:, :train_size, :]
-  test_data_trunc = test_data[:, :train_size, :]
+  test_data_trunc = test_data[:, :test_size, :]
 
-  # Get cat and dog classes
-  cifar10_cat_dog_training_data = [train_data_trunc[1], train_data_trunc[9]]
-  cifar10_cat_dog_test_data = [test_data_trunc[1], test_data_trunc[9]]
+  # Get cat and dog classes and cast to float32
+  cifar10_cat_dog_training_data = np.array([train_data_trunc[1], train_data_trunc[9]])
+  cifar10_cat_dog_test_data = np.array([test_data_trunc[1], test_data_trunc[9]])
+  cifar10_cat_dog_training_data = cifar10_cat_dog_training_data.astype('float32') / 255
+  cifar10_cat_dog_test_data = cifar10_cat_dog_test_data.astype('float32') / 255
+
   return cifar10_cat_dog_training_data, cifar10_cat_dog_test_data
 
+# Reconstruct the image in its 2d shape
+def reconstruct_image(data, shape):
+  return np.reshape(data, shape)

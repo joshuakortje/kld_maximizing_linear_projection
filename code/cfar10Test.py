@@ -1,20 +1,37 @@
+import numpy as np
+
 from gaussianprojection.utils import *
 import gaussianprojection.algorithm1 as algo1
 import gaussianprojection.algorithm2 as algo2
 import gaussianprojection.lol as lol
+import gaussianprojection.svcPassthrough as svcpass
 import gaussianprojection.gradientdescent as gdesc
+import gaussianprojection.autoencoder as autoencoder
+import gaussianprojection.convautoencoder as cae
+import gaussianprojection.varconvautoencoder as vae
 from sklearn.model_selection import cross_val_score
 import matplotlib.pyplot as plt
 
 #@title SVC with CIFAR-10
 print('SVC with CIFAR-10')
 training_p = 5000
+sub_train_set = int((4/5)*training_p)
 test_p = 1000
 r = 2
 trim = 0
+image_width = 32
+vector_size = image_width*image_width*3
+latent_dim = 500
+use_autoencoder = True
+type_autoencoders = ('basic', 'convolutional', 'variational')
+type_autoencoder = type_autoencoders[2]
+if type_autoencoder == 'convolutional':
+    latent_dim = 512
 
 # Get 2 classes of CIFAR-10 (cat and dog)
 cifar10_train_data, cifar10_test_data = get_cifar10_2_class(trim, training_p)
+ae_train_data = cifar10_train_data[:,:sub_train_set,:]
+ae_test_data = cifar10_train_data[:,sub_train_set:,:]
 
 # Define our pipeline
 stage = 'dimensionReduction'
@@ -22,16 +39,94 @@ cv_factor = 5
 algorithm1_pipe = Pipeline([(stage, algo1.Algorithm1(r=r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
 algorithm2_pipe = Pipeline([(stage, algo2.Algorithm2(r=r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
 lol_pipe = Pipeline([(stage, lol.Lol(r=r, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
+passthrough_pipe = Pipeline([(stage, svcpass.Passthrough(r=latent_dim, verbose=False)),('scaler', StandardScaler()), ('svc', SVC())])
 pipes = [algorithm1_pipe, algorithm2_pipe, lol_pipe]
-#pipes = [lol_pipe, algorithm1_pipe, algorithm2_pipe]
 last_xform = None
 
-# Convert the training data to a single set of labeled data
-# Using class 1 and class 2 for our labels
-training_data = np.concatenate(cifar10_train_data)
-training_labels = training_p*[1] + training_p*[2]
-class_1_data = cifar10_test_data[0]
-class_2_data = cifar10_test_data[1]
+#class_1_data = cifar10_test_data[0]
+#class_2_data = cifar10_test_data[1]
+
+# Make and train the autoencoder
+if use_autoencoder:
+    pipes.append(passthrough_pipe)
+
+    if type_autoencoder == 'basic':
+        print('Using Basic Autoencoder')
+        shape = (vector_size,)
+        cifar_autoencoder = autoencoder.Autoencoder(latent_dim, shape)
+
+        cifar10_train_data = np.concatenate(cifar10_train_data)
+        cifar10_test_data = np.concatenate(cifar10_test_data)
+        ae_train_data = np.concatenate(ae_train_data)
+        ae_test_data = np.concatenate(ae_test_data)
+
+        cifar_autoencoder.train_autoencoder(ae_train_data, ae_test_data)
+
+        cifar_autoencoder.encoder.summary()
+        cifar_autoencoder.decoder.summary()
+
+        # Convert the training data to a single set of labeled data
+        # Using class 1 and class 2 for our labels
+        training_data = cifar10_train_data
+        training_labels = training_p * [1] + training_p * [2]
+
+        # Convert the images with the autoencoder to the latent space
+        training_data = cifar_autoencoder.encoder(training_data).numpy()
+        class_1_data = cifar_autoencoder.encoder(cifar10_test_data[:test_p]).numpy()
+        class_2_data = cifar_autoencoder.encoder(cifar10_test_data[test_p:]).numpy()
+
+    elif type_autoencoder == 'convolutional':
+        print('Using Convolutional Autoencoder')
+        shape = (image_width, image_width, 3)
+        cifar10_train_data = reconstruct_image(cifar10_train_data, (2 * training_p, image_width, image_width, 3))
+        cifar10_test_data = reconstruct_image(cifar10_test_data, (2 * test_p, image_width, image_width, 3))
+        ae_train_data = reconstruct_image(ae_train_data, (2*sub_train_set, image_width, image_width, 3))
+        ae_test_data = reconstruct_image(ae_test_data, (2*sub_train_set, image_width, image_width, 3))
+        cifar_autoencoder =cae.ConvAutoencoder(shape)
+
+        cifar_autoencoder.train_autoencoder(ae_train_data, ae_test_data)
+
+        cifar_autoencoder.encoder.summary()
+        cifar_autoencoder.decoder.summary()
+
+        # Convert the training data to a single set of labeled data
+        # Using class 1 and class 2 for our labels
+        # training_data = np.concatenate(cifar10_train_data)
+        training_data = cifar10_train_data
+        training_labels = training_p * [1] + training_p * [2]
+
+        # Convert the images with the autoencoder to the latent space
+        training_data = cifar_autoencoder.encoder(training_data).numpy().reshape(2 * training_p, 8 * 8 * 8)
+        class_1_data = cifar_autoencoder.encoder(cifar10_test_data[:test_p]).numpy().reshape(test_p, 8 * 8 * 8)
+        class_2_data = cifar_autoencoder.encoder(cifar10_test_data[test_p:]).numpy().reshape(test_p, 8 * 8 * 8)
+    elif type_autoencoder == 'variational':
+        print('Using Variational Autoencoder')
+        shape = (image_width, image_width, 3)
+        cifar10_train_data = reconstruct_image(cifar10_train_data, (2 * training_p, image_width, image_width, 3))
+        cifar10_test_data = reconstruct_image(cifar10_test_data, (2 * test_p, image_width, image_width, 3))
+        cifar_autoencoder = vae.VarConvAutoencoder(latent_dim, shape)
+
+        cifar_autoencoder.train_autoencoder(cifar10_train_data)
+
+        cifar_autoencoder.encoder.summary()
+        cifar_autoencoder.decoder.summary()
+
+        # Convert the training data to a single set of labeled data
+        # Using class 1 and class 2 for our labels
+        # training_data = np.concatenate(cifar10_train_data)
+        training_data = cifar10_train_data
+        training_labels = training_p * [1] + training_p * [2]
+
+        # Convert the images with the autoencoder to the latent space
+        [z_mean, z_log_var, z_data] = cifar_autoencoder.encoder(training_data)
+        training_data = z_data.numpy().reshape(2 * training_p, latent_dim)
+        class_1_data = cifar_autoencoder.encoder(cifar10_test_data[:test_p])[2].numpy().reshape(test_p, latent_dim)
+        class_2_data = cifar_autoencoder.encoder(cifar10_test_data[test_p:])[2].numpy().reshape(test_p, latent_dim)
+else:
+    training_data = np.concatenate(cifar10_train_data)
+    training_labels = training_p * [1] + training_p * [2]
+    class_1_data = cifar10_test_data[0]
+    class_2_data = cifar10_test_data[1]
 
 for pipe in pipes:
     # If doing a Gradient ascent, use the last xform as the initial value
