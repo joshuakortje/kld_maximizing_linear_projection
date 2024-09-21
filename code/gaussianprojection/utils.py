@@ -8,6 +8,7 @@ import operator
 import statistics
 import copy
 from keras.datasets import cifar10
+from keras.datasets import imdb
 import scipy.io as sio
 from IPython.core.debugger import Pdb
 from collections import defaultdict
@@ -296,3 +297,47 @@ def get_cifar10_2_class(trim, train_size):
 # Reconstruct the image in its 2d shape
 def reconstruct_image(data, shape):
   return np.reshape(data, shape)
+
+
+def vectorize2(sequences, dimension=10000):
+  results = np.zeros((len(sequences), dimension))
+  for i, sequence in enumerate(sequences):
+    for j, word in enumerate(sequence):
+      results[i, word] += 1
+  return results
+
+# Get the IMDB Review Sentiment dataset
+def get_imdb_reviews(num_words, training_p, max_words=None):
+  # Get the IMDB dataset
+  (training_data, training_targets), (testing_data, testing_targets) = imdb.load_data(num_words=num_words)
+
+  # Combine the training and test since they are split 50/50 and we want to split differently
+  data_combined = np.concatenate((training_data, testing_data), axis=0)
+  targets_combined = np.concatenate((training_targets, testing_targets), axis=0)
+
+  # Get the largest length for a review
+  word_counts = vectorize2(data_combined)
+  max_occurances = word_counts.max()
+  word_counts = np.delete(word_counts, np.s_[0:2], axis=1)
+
+  ## Remove the starting character (not adding any information)
+  ## and pad out to the length of the longest review
+  #padded_data = []
+  #for rev in data_combined:
+  #  padded_data.append(np.pad(np.array(rev[1:]), (0, top_size - len(rev)), 'constant'))
+  #
+  #if max_words is not None:
+  #  padded_data = np.delete(padded_data, np.s_[max_words:top_size], axis=1)
+  #
+  ## Make a 2D np array and normalize
+  #padded_data = np.stack(padded_data).astype("float32")/max_occurances
+
+  # Split into training and testing sets
+  train_x = word_counts[:training_p]
+  train_y = targets_combined[:training_p]
+  test_x = word_counts[training_p:]
+  test_y = targets_combined[training_p:]
+
+  return (train_x, train_y), (test_x, test_y)
+
+
