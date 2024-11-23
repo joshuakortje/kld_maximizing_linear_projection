@@ -47,6 +47,18 @@ sigma_kld = gaussian_kld_sigma(x_1, x_2)
 print('X Mean KLD Contribution: ' + str(mu_kld.flatten()[0]))
 print('X Covariance KLD Contribution: ' + str(sigma_kld))
 
+# Estimate the sample statistics of the generated data
+est_mu_1, est_sigma_1 = calculate_statistics(data[0])
+est_mu_2, est_sigma_2 = calculate_statistics(data[1])
+est_kld = gaussian_kld((est_mu_1, est_sigma_1), (est_mu_2, est_sigma_2))
+est_x1 = [est_mu_1, est_sigma_1]
+est_x2 = [est_mu_2, est_sigma_2]
+est_mu_kld = gaussian_kld_mu(est_x1, est_x2)
+est_sigma_kld = gaussian_kld_sigma(est_x1, est_x2)
+print('Estimated Full KLD: ' + str(est_kld[0]))
+print('Estimated Mean KLD Contribution: ' + str(est_mu_kld.flatten()[0]))
+print('Estimated Covariance KLD Contribution: ' + str(est_sigma_kld))
+
 # Convert the training data to a single set of labeled data
 # Using class 1 and class 2 for our labels
 training_data = np.concatenate(data)
